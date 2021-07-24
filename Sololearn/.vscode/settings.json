@@ -1,7 +1,3 @@
 {
-    "python.pythonPath": "./env/Scripts/python.exe",
-    "git.ignoreLimitWarning": true,
-    "cSpell.words": [
-        "Pclass"
-    ]
+    "git.ignoreLimitWarning": true
 }
