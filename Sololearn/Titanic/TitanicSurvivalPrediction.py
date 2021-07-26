@@ -1,8 +1,10 @@
 from numpy import mod
+import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, precision_recall_fscore_support
-from sklearn.model_selection import train_test_split 
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, precision_recall_fscore_support, roc_curve, roc_auc_score
+from sklearn.model_selection import train_test_split, KFold
+import matplotlib.pyplot as plt
 
 # sensiticity calculation (same as recall)
 sensitivity_score = recall_score
@@ -29,6 +31,31 @@ print("test set:", X_test.shape, y_test.shape)
 # Using LogisticRegression to compute passenger's chances of survival on our data
 model = LogisticRegression()
 model.fit(X_train, y_train)
+
+# ROC curve 
+y_pred_proba = model.predict_proba(X_test)
+fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba[:,1])
+
+# # Plot ROC
+# plt.plot(fpr, tpr)
+# plt.plot([0, 1], [0, 1], linestyle='--')
+# plt.xlim([0.0, 1.0])
+# plt.ylim([0.0, 1.0])
+# plt.xlabel('1 - specificity')
+# plt.ylabel('sensitivity')
+# plt.show()
+
+# Create 2 logistic regression models. 1 with all features and 2 with only two of them.
+# Calculate their corresponding area under their ROC curves (AUC) and print those values
+model1 = LogisticRegression()
+model1.fit(X_train, y_train)
+y_pred_proba1 = model1.predict_proba(X_test)
+print("model 1 AUC score:", roc_auc_score(y_test, y_pred_proba1[:, 1]))
+
+model2 = LogisticRegression()
+model2.fit(X_train[:, 0:2], y_train)
+y_pred_proba2 = model2.predict_proba(X_test[:, 0:2])
+print("model 2 AUC score:", roc_auc_score(y_test, y_pred_proba2[:, 1]))
 
 # Predict what happens to first n passenger's in our data based on our model
 # n = 10
@@ -61,7 +88,22 @@ print("recall:", recall_score(y_test, yPredicted))
 print("f1 score:", f1_score(y_test, yPredicted))
 
 # sklearn's built-in confusion matrix (shows negatives first! 'Transposed matrix' because positive - 1 and negative - 0)
-print(confusion_matrix(y_test, yPredicted))
+# print(confusion_matrix(y_test, yPredicted))
 
 print("sensitivity:", sensitivity_score(y_test, yPredicted))
 print("specificity:", specificity_score(y_test, yPredicted))
+
+# We can use k-fold validation to make most of a limitingly small dataset
+# Here we split and shuffle dataset into 5 training/test sets and calculate each output model's score
+scores = []
+kf = KFold(n_splits=5, shuffle=True)
+for train_index, test_index in kf.split(X):
+    X_train, X_test = X[train_index], X[test_index]
+    y_train, y_test = y[train_index], y[test_index]
+    model = LogisticRegression()
+    model.fit(X_train, y_train)
+    scores.append(model.score(X_test, y_test))
+# Here we print all the scores and one average score calculated from them
+print("--K-fold validation--")
+print(f"Scores: {scores}")
+print(f"Mean of scores: {np.mean(scores)}")
